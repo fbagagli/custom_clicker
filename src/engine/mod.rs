@@ -18,20 +18,38 @@ pub fn run_engine(cmd_receiver: crossbeam_channel::Receiver<EngineCommand>) {
     let mut enigo = enigo::Enigo::new(&enigo::Settings::default()).unwrap();
 
     loop {
-        // Try to receive a command, without blocking if we're currently running
-        let cmd_res = if state == EngineState::Running {
-            cmd_receiver.try_recv()
-        } else {
-            // Block until we get a command if we are idle or paused
-            cmd_receiver.recv().map_err(|_| crossbeam_channel::TryRecvError::Disconnected)
-        };
+        // Drain ALL pending messages from the channel before making a decision.
+        // This ensures that if the input thread floods the channel with repeat key events,
+        // we process them instantly and react only to the latest command.
 
-        match cmd_res {
-            Ok(EngineCommand::Start) => state = EngineState::Running,
-            Ok(EngineCommand::Pause) => state = EngineState::Paused,
-            Ok(EngineCommand::Stop) => state = EngineState::Idle,
-            Err(crossbeam_channel::TryRecvError::Empty) => {} // No command, continue
-            Err(crossbeam_channel::TryRecvError::Disconnected) => break, // Channel closed, exit
+        let mut last_command = None;
+
+        if state == EngineState::Running {
+            // If running, we don't want to block. Try to read all available messages.
+            while let Ok(cmd) = cmd_receiver.try_recv() {
+                last_command = Some(cmd);
+            }
+        } else {
+            // If idle or paused, we block until we receive AT LEAST one message.
+            match cmd_receiver.recv() {
+                Ok(cmd) => {
+                    last_command = Some(cmd);
+                    // Then drain any other pending messages that arrived at the exact same time
+                    while let Ok(cmd) = cmd_receiver.try_recv() {
+                        last_command = Some(cmd);
+                    }
+                }
+                Err(_) => break, // Disconnected
+            }
+        }
+
+        // Apply the latest command
+        if let Some(cmd) = last_command {
+            match cmd {
+                EngineCommand::Start => state = EngineState::Running,
+                EngineCommand::Pause => state = EngineState::Paused,
+                EngineCommand::Stop => state = EngineState::Idle,
+            }
         }
 
         if state == EngineState::Running {
