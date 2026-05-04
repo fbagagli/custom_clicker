@@ -28,5 +28,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: autoclicker-windows-exe
-        path: target/release/autoclicker.exe
+        path: target/release/custom_clicker.exe
         if-no-files-found: error
