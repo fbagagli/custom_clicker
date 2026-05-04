@@ -12,9 +12,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            start_hotkey: vec!["F5".to_string()],
-            pause_hotkey: vec!["F6".to_string()],
-            stop_hotkey: vec!["F7".to_string()],
+            start_hotkey: vec!["F10".to_string()],
+            pause_hotkey: vec!["F11".to_string()],
+            stop_hotkey: vec!["F12".to_string()],
         }
     }
 }
