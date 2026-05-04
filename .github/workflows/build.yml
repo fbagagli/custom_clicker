@@ -1,0 +1,32 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+
+    - name: Build
+      run: cargo build --release
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: autoclicker-windows-exe
+        path: target/release/autoclicker.exe
+        if-no-files-found: error

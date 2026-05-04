@@ -1,0 +1,13 @@
+[package]
+name = "autoclicker"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+crossbeam-channel = "0.5.15"
+eframe = "0.34.1"
+egui = "0.34.1"
+enigo = { version = "0.6.1", features = ["serde"] }
+rdev = "0.5.3"
+serde = { version = "1.0.228", features = ["derive"] }
+toml = "1.1.2"
