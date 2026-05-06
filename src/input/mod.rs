@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::engine::EngineCommand;
-use rdev::{listen, Event, EventType, Key};
+use rdev::{Event, EventType, Key, listen};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 

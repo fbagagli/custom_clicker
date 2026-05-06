@@ -36,5 +36,6 @@ pub fn run_ui(config: Config) {
         "Autoclicker",
         options,
         Box::new(|_cc| Ok(Box::new(AutoclickerApp::new(config)))),
-    ).unwrap();
+    )
+    .unwrap();
 }
