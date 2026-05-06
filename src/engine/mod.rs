@@ -167,6 +167,9 @@ pub fn run_engine(
             if points.is_empty() {
                 // Failsafe to prevent divide by zero
                 state_machine.state = EngineState::Idle;
+                if let Ok(mut state) = shared_state.write() {
+                    *state = state_machine.state;
+                }
                 continue;
             }
 

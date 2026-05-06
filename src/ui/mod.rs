@@ -55,24 +55,43 @@ impl eframe::App for AutoclickerApp {
             }
         };
 
+        let mut changed = false;
+
         ui.horizontal(|ui| {
             ui.label("Total Time (s):");
-            ui.add(egui::DragValue::new(&mut params.total_time_seconds).range(0.1..=10000.0));
+            if ui
+                .add(egui::DragValue::new(&mut params.total_time_seconds).range(0.1..=10000.0))
+                .changed()
+            {
+                changed = true;
+            }
         });
 
         ui.horizontal(|ui| {
             ui.label("Vertical Step (px):");
-            ui.add(egui::DragValue::new(&mut params.y_step_pixels).range(1..=10000));
+            if ui
+                .add(egui::DragValue::new(&mut params.y_step_pixels).range(1..=10000))
+                .changed()
+            {
+                changed = true;
+            }
         });
 
         ui.horizontal(|ui| {
             ui.label("Horizontal Shift (px):");
-            ui.add(egui::DragValue::new(&mut params.x_shift_pixels).range(1..=10000));
+            if ui
+                .add(egui::DragValue::new(&mut params.x_shift_pixels).range(1..=10000))
+                .changed()
+            {
+                changed = true;
+            }
         });
 
         // Write parameters back if changed
-        if let Ok(mut p) = self.shared_params.write() {
-            *p = params;
+        if changed {
+            if let Ok(mut p) = self.shared_params.write() {
+                *p = params;
+            }
         }
 
         ui.separator();
