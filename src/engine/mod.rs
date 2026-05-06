@@ -125,12 +125,15 @@ mod tests {
     }
 }
 
-pub fn run_engine(cmd_receiver: crossbeam_channel::Receiver<EngineCommand>) {
+use std::sync::{Arc, RwLock};
+
+pub fn run_engine(
+    cmd_receiver: crossbeam_channel::Receiver<EngineCommand>,
+    shared_state: Arc<RwLock<EngineState>>,
+    shared_params: Arc<RwLock<ScanParams>>,
+) {
     let mut state_machine = StateMachine::new();
     let mut enigo = enigo::Enigo::new(&enigo::Settings::default()).unwrap();
-
-    // Placeholder configuration for now.
-    let params = ScanParams::default();
 
     loop {
         // Handle IDLE state (blocking wait)
@@ -142,6 +145,9 @@ pub fn run_engine(cmd_receiver: crossbeam_channel::Receiver<EngineCommand>) {
                         last_command = c;
                     }
                     state_machine.apply(last_command);
+                    if let Ok(mut state) = shared_state.write() {
+                        *state = state_machine.state;
+                    }
                 }
                 Err(_) => break, // Disconnected
             }
@@ -150,21 +156,30 @@ pub fn run_engine(cmd_receiver: crossbeam_channel::Receiver<EngineCommand>) {
 
         if state_machine.state == EngineState::Running || state_machine.state == EngineState::Paused
         {
+            // Read latest params at the start of a cycle
+            let current_params = {
+                let params_lock = shared_params.read().unwrap();
+                *params_lock
+            };
+
             // Precompute points for this cycle.
-            let points = zigzag::generate_cycle_points(&params);
+            let points = zigzag::generate_cycle_points(&current_params);
             if points.is_empty() {
                 // Failsafe to prevent divide by zero
                 state_machine.state = EngineState::Idle;
+                if let Ok(mut state) = shared_state.write() {
+                    *state = state_machine.state;
+                }
                 continue;
             }
 
             let num_points = points.len();
             let dt = if num_points > 1 {
                 std::time::Duration::from_secs_f64(
-                    params.total_time_seconds / (num_points - 1) as f64,
+                    current_params.total_time_seconds / (num_points - 1) as f64,
                 )
             } else {
-                std::time::Duration::from_secs_f64(params.total_time_seconds)
+                std::time::Duration::from_secs_f64(current_params.total_time_seconds)
             };
 
             let mut cycle_start_time = std::time::Instant::now();
@@ -178,6 +193,9 @@ pub fn run_engine(cmd_receiver: crossbeam_channel::Receiver<EngineCommand>) {
                 }
                 if let Some(cmd) = last_command {
                     state_machine.apply(cmd);
+                    if let Ok(mut state) = shared_state.write() {
+                        *state = state_machine.state;
+                    }
                 }
 
                 if state_machine.state == EngineState::Idle {
@@ -194,6 +212,9 @@ pub fn run_engine(cmd_receiver: crossbeam_channel::Receiver<EngineCommand>) {
                             last_cmd = c;
                         }
                         state_machine.apply(last_cmd);
+                        if let Ok(mut state) = shared_state.write() {
+                            *state = state_machine.state;
+                        }
 
                         if state_machine.state == EngineState::Idle {
                             break;
